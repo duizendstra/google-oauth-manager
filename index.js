@@ -8,11 +8,10 @@ function googleOauthManager(mainSpecs) {
     "use strict";
     var TOKEN_DIR = (process.env.HOME || process.env.HOMEPATH || process.env.USERPROFILE) + '/.credentials/';
     var scopes;
-    var secretsFile;
     var credentialsFile;
+    var tokenFile;
 
     function storeToken(token) {
-
         try {
             fs.mkdirSync(TOKEN_DIR);
         } catch (err) {
@@ -20,8 +19,8 @@ function googleOauthManager(mainSpecs) {
                 throw err;
             }
         }
-        fs.writeFile(TOKEN_DIR + credentialsFile, JSON.stringify(token));
-        console.log('Token stored to ' + TOKEN_DIR + credentialsFile);
+        fs.writeFile(TOKEN_DIR + tokenFile, JSON.stringify(token));
+        console.log('Token stored to ' + TOKEN_DIR + tokenFile);
     }
 
     function getNewToken(credentials) {
@@ -58,9 +57,23 @@ function googleOauthManager(mainSpecs) {
         });
     }
 
-    function getTokenFromFile(credentialsFile) {
+    function authorize(credentials, token) {
+        console.log("Authorize");
+        return new Promise(function (resolve, reject) {
+            var clientSecret = credentials.installed.client_secret;
+            var clientId = credentials.installed.client_id;
+            var redirectUrl = credentials.installed.redirect_uris[0];
+            var auth = new googleAuth();
+            var oauth2Client = new auth.OAuth2(clientId, clientSecret, redirectUrl);
+
+            oauth2Client.credentials = token;
+            resolve(oauth2Client);
+        });
+    }
+
+    function getTokenFromFile(tokenFile) {
         return new Promise(function (resolve) {
-            fs.readFile(TOKEN_DIR + credentialsFile, function (err, token) {
+            fs.readFile(TOKEN_DIR + tokenFile, function (err, token) {
                 if (err) {
                     resolve();
                 } else {
@@ -70,10 +83,11 @@ function googleOauthManager(mainSpecs) {
         });
     }
 
-    function loadSecretsFromFile(secretsFile) {
+    function loadCredentials(credentialsFile) {
+        console.log("loading credentials from file");
         return new Promise(function (resolve, reject) {
             try {
-                fs.readFile(secretsFile, function (err, content) {
+                fs.readFile(credentialsFile, function (err, content) {
                     if (err) {
                         reject("Error loading client secret file: " + err);
                         return;
@@ -89,21 +103,32 @@ function googleOauthManager(mainSpecs) {
 
     function getAuthorisation() {
         return new Promise(function (resolve, reject) {
-            getTokenFromFile(credentialsFile)
+            var credentials;
+            // loading credentials file
+            loadCredentials(credentialsFile)
                 .then(function (response) {
-                    if (response) {
-                        console.log("found file");
-                        resolve(response);
-                    }
-                    loadSecretsFromFile(secretsFile)
-                        .then(getNewToken);
-                })
-                .catch(reject);
+                    credentials = response;
+                    // loading token from file
+                    getTokenFromFile(tokenFile).then(function (response) {
+                        if (response) {
+                            // using token from file
+                            authorize(credentials, response).then(function (auth) {
+                                resolve(auth);
+                                return;
+                            }).catch(reject);
+                        } else {
+                            // creating new token
+                            getNewToken(credentials).then(function (auth) {
+                                resolve(auth);
+                            }).catch(reject);
+                        }
+                    }).catch(reject);
+                }).catch(reject);
         });
     }
 
-    secretsFile = mainSpecs.secretsFile;
     credentialsFile = mainSpecs.credentialsFile;
+    tokenFile = mainSpecs.tokenFile;
     scopes = mainSpecs.scopes;
 
     return {
