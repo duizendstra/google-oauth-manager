@@ -1,6 +1,6 @@
 {
   "name": "google-oauth-manager",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "description": "helper fot the authentication for the Google APIs",
   "main": "index.js",
   "dependencies": {

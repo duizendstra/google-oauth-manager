@@ -58,7 +58,6 @@ function googleOauthManager(mainSpecs) {
     }
 
     function authorize(credentials, token) {
-        console.log("Authorize");
         return new Promise(function (resolve, reject) {
             var clientSecret = credentials.installed.client_secret;
             var clientId = credentials.installed.client_id;
@@ -113,12 +112,14 @@ function googleOauthManager(mainSpecs) {
                         if (response) {
                             // using token from file
                             authorize(credentials, response).then(function (auth) {
+                                console.log("Authorized user");
                                 resolve(auth);
                                 return;
                             }).catch(reject);
                         } else {
                             // creating new token
                             getNewToken(credentials).then(function (auth) {
+                                console.log("Authorized user");
                                 resolve(auth);
                             }).catch(reject);
                         }
@@ -127,12 +128,43 @@ function googleOauthManager(mainSpecs) {
         });
     }
 
+    function getDomainWideAuthorisation(specs) {
+        var key;
+        var jwtClient;
+        var serviceAccountScopes;
+        var user;
+
+        key = require(specs.keyFile);
+        serviceAccountScopes = specs.scopes;
+        user = specs.user;
+
+        return new Promise(function (resolve, reject) {
+            jwtClient = new google.auth.JWT(
+                key.client_email,
+                null,
+                key.private_key,
+                serviceAccountScopes,
+                user
+            );
+            jwtClient.authorize(function (err) {
+                if (err) {
+                    console.log(err);
+                    reject("Could not authenticate " + user + ":" + err);
+                    return;
+                }
+                console.log("Autorized %s as a service account user", user);
+                resolve(jwtClient);
+            });
+        });
+    }
+
     credentialsFile = mainSpecs.credentialsFile;
     tokenFile = mainSpecs.tokenFile;
     scopes = mainSpecs.scopes;
 
     return {
-        getAuthorisation: getAuthorisation
+        getAuthorisation: getAuthorisation,
+        getDomainWideAuthorisation: getDomainWideAuthorisation
     };
 }
 
