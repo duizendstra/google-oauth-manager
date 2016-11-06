@@ -6,21 +6,13 @@ var googleAuth = require('google-auth-library');
 
 function googleOauthManager(mainSpecs) {
     "use strict";
-    var TOKEN_DIR = (process.env.HOME || process.env.HOMEPATH || process.env.USERPROFILE) + '/.credentials/';
     var scopes;
     var credentialsFile;
     var tokenFile;
 
     function storeToken(token) {
-        try {
-            fs.mkdirSync(TOKEN_DIR);
-        } catch (err) {
-            if (err.code !== 'EEXIST') {
-                throw err;
-            }
-        }
-        fs.writeFile(TOKEN_DIR + tokenFile, JSON.stringify(token));
-        console.log('Token stored to ' + TOKEN_DIR + tokenFile);
+        fs.writeFile(tokenFile, JSON.stringify(token));
+        console.log('Token stored to ' + tokenFile);
     }
 
     function getNewToken(credentials) {
@@ -72,7 +64,7 @@ function googleOauthManager(mainSpecs) {
 
     function getTokenFromFile(tokenFile) {
         return new Promise(function (resolve) {
-            fs.readFile(TOKEN_DIR + tokenFile, function (err, token) {
+            fs.readFile(tokenFile, function (err, token) {
                 if (err) {
                     resolve();
                 } else {
