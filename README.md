@@ -5,7 +5,7 @@ A helper for authenticating with the APIs
 
 ## Installation
 
-  `npm install google-oath-manager`
+  `npm install google-oauth-manager`
 
 ## Usage
 
